@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Bookings - FUSST Booking</title>
+  <link rel="icon" href="../assets/images/logo.png" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="../assets/css/style.css"/>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="../index.html">
+        <img src="../assets/images/logo.png" height="30" alt="Logo" class="me-2">
+        FUSST Booking
+      </a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navUser"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navUser">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="venues.html">Venues</a></li>
+          <li class="nav-item"><a class="nav-link" href="book-venue.html">Book a Venue</a></li>
+          <li class="nav-item"><a class="nav-link active" href="my-bookings.html">My Bookings</a></li>
+          <li class="nav-item"><a class="nav-link btn btn-outline-light btn-sm ms-2" href="login.html">Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5">
+    <h2 class="text-center mb-4">My Bookings</h2>
+    <div class="table-responsive shadow-sm">
+      <table class="table table-hover table-bordered align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Booking ID</th>
+            <th>Venue</th>
+            <th>Date</th>
+            <th>Time Slot</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="user-bookings-body">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="footer-dark text-center py-3">
+    &copy; 2025 FUSST University. All Rights Reserved.
+  </footer>
+
+  <script>
+    // On page load, fetch this user’s bookings
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await fetch('../../backend/routes/bookings.php?action=listUser');
+        const data = await res.json();
+        if (data.error) {
+          alert('Error: ' + data.error);
+          return;
+        }
+        const tbody = document.getElementById('user-bookings-body');
+        data.bookings.forEach(b => {
+          const tr = document.createElement('tr');
+          tr.dataset.bookingId = b.id;
+          tr.innerHTML = `
+            <td>${b.id}</td>
+            <td>${b.venue_name}</td>
+            <td>${b.booking_date}</td>
+            <td>${b.start_time.slice(0,5)} - ${b.end_time.slice(0,5)}</td>
+            <td>
+              <span class="badge ${
+                b.status === 'approved' ? 'bg-success' :
+                b.status === 'pending' ? 'bg-warning text-dark' :
+                'bg-danger'
+              }">${b.status.charAt(0).toUpperCase() + b.status.slice(1)}</span>
+            </td>
+            <td>
+              ${b.status === 'pending'
+                ? `<button class="btn btn-sm btn-danger btn-cancel">Cancel</button>`
+                : ''}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Add event listeners to “Cancel” buttons
+        document.querySelectorAll('.btn-cancel').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('tr');
+            const bookingId = row.dataset.bookingId;
+            if (!bookingId) return;
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+            try {
+              const res2 = await fetch(`../../backend/routes/bookings.php?action=delete&id=${bookingId}`, {
+                method: 'DELETE'
+              });
+              const data2 = await res2.json();
+              if (data2.error) {
+                alert('Error: ' + data2.error);
+                return;
+              }
+              alert('Booking canceled.');
+              window.location.reload();
+            } catch (err) {
+              alert('Network or server error.');
+            }
+          });
+        });
+      } catch (err) {
+        alert('Network or server error.');
+        console.error(err);
+      }
+    });
+  </script>
+  <script src="../assets/js/script.js"></script>
+</body>
+</html>
